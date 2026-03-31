@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大文件上传下载</title>
+  <style>
+    :root {
+      --bg-1: #f5ede3;
+      --bg-2: #f3c57c;
+      --paper: #fff8ef;
+      --ink: #1d2420;
+      --accent: #005c53;
+      --accent-2: #0e8f7d;
+      --warn: #ac3f22;
+      --radius: 16px;
+      --shadow: 0 18px 40px rgba(29, 36, 32, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 12% 10%, #ffd88a 0 18%, transparent 18%),
+        radial-gradient(circle at 88% 85%, #8ad1c8 0 14%, transparent 14%),
+        linear-gradient(140deg, var(--bg-1), var(--bg-2));
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .panel {
+      width: min(860px, 100%);
+      background: var(--paper);
+      border: 2px solid rgba(29, 36, 32, 0.12);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(20px);
+      opacity: 0;
+      animation: rise 700ms ease forwards;
+    }
+
+    .head {
+      padding: 28px 30px 14px;
+      background: linear-gradient(120deg, #f7e9d3, #f5f1e6);
+      border-bottom: 1px solid rgba(29, 36, 32, 0.1);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: 0.02em;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      font-size: 0.96rem;
+      opacity: 0.82;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 22px;
+    }
+
+    .card {
+      border: 1px solid rgba(29, 36, 32, 0.16);
+      border-radius: var(--radius);
+      background: #fffdf8;
+      padding: 18px;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: rise 560ms ease forwards;
+    }
+
+    .card:nth-child(1) { animation-delay: 120ms; }
+    .card:nth-child(2) { animation-delay: 220ms; }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 1.16rem;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"], input[type="file"] {
+      width: 100%;
+      border: 1px solid rgba(29, 36, 32, 0.28);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 14px;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+      transition: transform 160ms ease, filter 160ms ease;
+    }
+
+    button:hover { filter: brightness(1.05); }
+    button:active { transform: translateY(1px); }
+
+    .status {
+      margin: 0 22px 20px;
+      min-height: 52px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      background: rgba(0, 92, 83, 0.09);
+      border: 1px solid rgba(0, 92, 83, 0.25);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error {
+      background: rgba(172, 63, 34, 0.08);
+      border-color: rgba(172, 63, 34, 0.3);
+      color: var(--warn);
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      opacity: 0.78;
+      line-height: 1.45;
+    }
+
+    .progress-wrap {
+      margin-top: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #0e8f7d, #2dbda9);
+      transition: width 120ms linear;
+    }
+
+    .progress-text {
+      margin-top: 8px;
+      font-size: 0.86rem;
+      opacity: 0.85;
+    }
+
+    .progress-meta {
+      margin-top: 4px;
+      font-size: 0.82rem;
+      opacity: 0.8;
+      min-height: 1.2em;
+    }
+
+    .file-list {
+      margin-top: 8px;
+      display: grid;
+      gap: 10px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .file-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(29, 36, 32, 0.12);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .file-name {
+      font-size: 0.9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mini-btn {
+      margin: 0;
+      width: auto;
+      padding: 8px 10px;
+      font-size: 0.84rem;
+      border-radius: 10px;
+    }
+
+    @keyframes rise {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .grid {
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+
+      .head {
+        padding: 20px 18px 10px;
+      }
+
+      .status {
+        margin: 0 16px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <header class="head">
+      <h1>大文件上传下载控制台</h1>
+      <div class="subtitle">前端 HTML + C++ HTTP 后端，文件固定保存到服务端 upload 目录。</div>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>上传文件</h2>
+        <label for="upload-file">选择本地文件</label>
+        <input id="upload-file" type="file">
+        <button id="upload-btn" type="button">开始上传</button>
+        <div class="hint">上传 API: POST /api/upload，自动保存到服务器 upload/文件名。</div>
+        <div class="progress-wrap" aria-hidden="true">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="progress-text" class="progress-text">进度: 0%</div>
+        <div id="progress-meta" class="progress-meta">已上传 0 B / 0 B | 速度 0 B/s | 预计剩余 --</div>
+      </article>
+
+      <article class="card">
+        <h2>下载文件</h2>
+        <button id="refresh-btn" type="button">刷新文件列表</button>
+        <div class="hint">系统自动展示 upload 目录中的全部文件，点击即可下载。</div>
+        <div id="file-list" class="file-list"></div>
+      </article>
+    </section>
+
+    <div id="status" class="status">系统就绪。</div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const progressBarEl = document.getElementById('progress-bar');
+    const progressTextEl = document.getElementById('progress-text');
+    const progressMetaEl = document.getElementById('progress-meta');
+    const fileListEl = document.getElementById('file-list');
+
+    const uploadStats = {
+      startedAt: 0,
+      lastSampleAt: 0,
+      lastLoadedBytes: 0,
+      speedBpsEma: 0
+    };
+
+    function showStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle('error', isError);
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return '--';
+      const s = Math.round(seconds);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) return `${h}小时${m}分${sec}秒`;
+      if (m > 0) return `${m}分${sec}秒`;
+      return `${sec}秒`;
+    }
+
+    function setProgress(loaded, total, speedBps = 0) {
+      let percent = 0;
+      if (total > 0) {
+        percent = Math.min(100, Math.round((loaded / total) * 100));
+      }
+      progressBarEl.style.width = `${percent}%`;
+      progressTextEl.textContent = `进度: ${percent}%`;
+
+      const remaining = Math.max(0, total - loaded);
+      const eta = speedBps > 0 ? remaining / speedBps : NaN;
+      progressMetaEl.textContent = `已上传 ${formatBytes(loaded)} / ${formatBytes(total)} | 速度 ${formatBytes(speedBps)}/s | 预计剩余 ${formatDuration(eta)}`;
+    }
+
+    function resetUploadStats() {
+      const now = performance.now();
+      uploadStats.startedAt = now;
+      uploadStats.lastSampleAt = now;
+      uploadStats.lastLoadedBytes = 0;
+      uploadStats.speedBpsEma = 0;
+    }
+
+    function computeUploadSpeed(loadedBytes) {
+      const now = performance.now();
+      const totalSec = Math.max(0.001, (now - uploadStats.startedAt) / 1000);
+      const avgBps = loadedBytes / totalSec;
+
+      const deltaSec = (now - uploadStats.lastSampleAt) / 1000;
+      const deltaBytes = Math.max(0, loadedBytes - uploadStats.lastLoadedBytes);
+
+      // 采样间隔过短会导致速度显示尖峰，限制最小采样窗口提升稳定性。
+      if (deltaSec >= 0.2) {
+        const instantBps = deltaBytes / deltaSec;
+        if (uploadStats.speedBpsEma <= 0) {
+          uploadStats.speedBpsEma = instantBps;
+        } else {
+          uploadStats.speedBpsEma = uploadStats.speedBpsEma * 0.7 + instantBps * 0.3;
+        }
+
+        uploadStats.lastSampleAt = now;
+        uploadStats.lastLoadedBytes = loadedBytes;
+      }
+
+      if (uploadStats.speedBpsEma > 0) {
+        return uploadStats.speedBpsEma;
+      }
+      return avgBps;
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes < 0) return '未知';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let value = bytes;
+      let i = 0;
+      while (value >= 1024 && i < units.length - 1) {
+        value /= 1024;
+        i += 1;
+      }
+      return `${value.toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
+    }
+
+    async function loadFiles() {
+      try {
+        const resp = await fetch('/api/files');
+        const data = await resp.json();
+        if (!resp.ok || !data || !Array.isArray(data.files)) {
+          throw new Error('无法获取文件列表');
+        }
+
+        if (data.files.length === 0) {
+          fileListEl.innerHTML = '<div class="hint">upload 目录当前没有文件。</div>';
+          return;
+        }
+
+        fileListEl.innerHTML = '';
+        data.files.forEach((name) => {
+          const row = document.createElement('div');
+          row.className = 'file-item';
+
+          const label = document.createElement('div');
+          label.className = 'file-name';
+          label.textContent = name;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'mini-btn';
+          btn.textContent = '下载';
+          btn.addEventListener('click', () => {
+            showStatus(`开始下载: upload/${name}`);
+            window.location.href = `/api/download?name=${encodeURIComponent(name)}`;
+          });
+
+          row.appendChild(label);
+          row.appendChild(btn);
+          fileListEl.appendChild(row);
+        });
+      } catch (err) {
+        fileListEl.innerHTML = '<div class="hint">文件列表加载失败，请重试。</div>';
+        showStatus(`文件列表加载失败: ${err.message || err}`, true);
+      }
+    }
+
+    document.getElementById('upload-btn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('upload-file');
+      const file = fileInput.files && fileInput.files[0];
+
+      if (!file) {
+        showStatus('请先选择要上传的文件。', true);
+        return;
+      }
+
+      try {
+        resetUploadStats();
+        setProgress(0, file.size, 0);
+        showStatus(`上传中: ${file.name} (${formatBytes(file.size)}) -> upload/${file.name}`);
+
+        const xhr = new XMLHttpRequest();
+        const done = new Promise((resolve, reject) => {
+          xhr.open('POST', '/api/upload');
+          xhr.setRequestHeader('X-File-Name', file.name);
+
+          xhr.upload.onprogress = (evt) => {
+            if (evt.lengthComputable) {
+              const speed = computeUploadSpeed(evt.loaded);
+              setProgress(evt.loaded, evt.total, speed);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const finalSpeed = computeUploadSpeed(file.size);
+              setProgress(file.size, file.size, finalSpeed);
+              resolve(xhr.responseText || 'upload success');
+            } else {
+              reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('网络错误'));
+          xhr.send(file);
+        });
+
+        const text = await done;
+        showStatus(`上传成功:\n${String(text).trim()}`);
+        await loadFiles();
+      } catch (err) {
+        showStatus(`上传失败: ${err.message || err}`, true);
+      }
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', loadFiles);
+    loadFiles();
+  </script>
+</body>
+</html>
