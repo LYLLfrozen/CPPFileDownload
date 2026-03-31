@@ -1,6 +1,5 @@
 #include "common.hpp"
 
-#include <arpa/inet.h>
 #include <cerrno>
 #include <csignal>
 #include <cstdint>
@@ -14,11 +13,16 @@
 #include <thread>
 #include <vector>
 
-#include <fcntl.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 namespace {
 
@@ -48,13 +52,19 @@ std::string trim(std::string s) {
     return s.substr(i);
 }
 
-bool recv_http_line(int fd, std::string& line) {
+bool recv_http_line(fd_socket_t fd, std::string& line) {
     line.clear();
     char ch = '\0';
     while (true) {
-        const ssize_t n = ::recv(fd, &ch, 1, 0);
+        const int n = ::recv(fd, &ch, 1, 0);
         if (n < 0) {
-            if (errno == EINTR) {
+            if (fd::last_socket_error() ==
+#ifdef _WIN32
+                WSAEINTR
+#else
+                EINTR
+#endif
+            ) {
                 continue;
             }
             return false;
@@ -75,7 +85,7 @@ bool recv_http_line(int fd, std::string& line) {
     }
 }
 
-bool read_http_request(int fd, HttpRequest& req) {
+bool read_http_request(fd_socket_t fd, HttpRequest& req) {
     std::string line;
     if (!recv_http_line(fd, line)) {
         return false;
@@ -107,7 +117,7 @@ bool read_http_request(int fd, HttpRequest& req) {
     return true;
 }
 
-bool send_http_response_head(int fd,
+bool send_http_response_head(fd_socket_t fd,
                              int status_code,
                              const std::string& status_text,
                              const std::vector<std::pair<std::string, std::string>>& headers) {
@@ -227,7 +237,7 @@ std::string build_files_json(const std::filesystem::path& root_dir) {
     return oss.str();
 }
 
-bool send_plain_text(int fd, int code, const std::string& status, const std::string& body) {
+bool send_plain_text(fd_socket_t fd, int code, const std::string& status, const std::string& body) {
     if (!send_http_response_head(fd,
                                  code,
                                  status,
@@ -238,10 +248,10 @@ bool send_plain_text(int fd, int code, const std::string& status, const std::str
     return fd::send_all(fd, body.data(), body.size());
 }
 
-void handle_client(int client_fd, const std::filesystem::path& root_dir) {
+void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir) {
     HttpRequest req;
     if (!read_http_request(client_fd, req)) {
-        ::close(client_fd);
+        fd::close_socket(client_fd);
         return;
     }
 
@@ -252,7 +262,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         const std::string html = load_file_text(index_html);
         if (html.empty()) {
             send_plain_text(client_fd, 500, "Internal Server Error", "front-end file missing\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
         if (!send_http_response_head(client_fd,
@@ -260,7 +270,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
                                      "OK",
                                      {{"Content-Type", "text/html; charset=utf-8"},
                                       {"Content-Length", std::to_string(html.size())}})) {
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
         fd::send_all(client_fd, html.data(), html.size());
@@ -269,7 +279,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         const auto it_name = req.headers.find("x-file-name");
         if (it_len == req.headers.end() || it_name == req.headers.end()) {
             send_plain_text(client_fd, 400, "Bad Request", "missing content-length or x-file-name\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
@@ -278,7 +288,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
             file_size = static_cast<std::uint64_t>(std::stoull(it_len->second));
         } catch (...) {
             send_plain_text(client_fd, 400, "Bad Request", "invalid content-length\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
@@ -286,25 +296,25 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         const std::string file_name = std::filesystem::path(file_name_raw).filename().string();
         if (file_name.empty()) {
             send_plain_text(client_fd, 400, "Bad Request", "invalid file name\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
         const std::filesystem::path final_path = root_dir / file_name;
 
-        const int file_fd = ::open(final_path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+        const int file_fd = fd::open_file_write_trunc(final_path.string().c_str());
         if (file_fd < 0) {
             send_plain_text(client_fd, 500, "Internal Server Error", "cannot open destination file\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
         const bool ok = fd::stream_socket_to_file(client_fd, file_fd, file_size);
-        ::close(file_fd);
+        fd::close_file(file_fd);
 
         if (!ok) {
             send_plain_text(client_fd, 500, "Internal Server Error", "upload failed\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
@@ -314,7 +324,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         const std::string file_name = std::filesystem::path(file_name_raw).filename().string();
         if (file_name.empty()) {
             send_plain_text(client_fd, 400, "Bad Request", "invalid file name\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
@@ -323,14 +333,14 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         const std::uint64_t file_size = static_cast<std::uint64_t>(std::filesystem::file_size(final_path, ec));
         if (ec) {
             send_plain_text(client_fd, 404, "Not Found", "file not found\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
-        const int file_fd = ::open(final_path.c_str(), O_RDONLY);
+        const int file_fd = fd::open_file_read(final_path.string().c_str());
         if (file_fd < 0) {
             send_plain_text(client_fd, 500, "Internal Server Error", "cannot open source file\n");
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
@@ -340,13 +350,13 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
                                      {{"Content-Type", "application/octet-stream"},
                                       {"Content-Length", std::to_string(file_size)},
                                       {"Content-Disposition", "attachment; filename=\"" + file_name + "\""}})) {
-            ::close(file_fd);
-            ::close(client_fd);
+            fd::close_file(file_fd);
+            fd::close_socket(client_fd);
             return;
         }
 
         const bool ok = fd::stream_file_to_socket(file_fd, client_fd, file_size);
-        ::close(file_fd);
+        fd::close_file(file_fd);
         if (!ok) {
             std::cerr << "download failed: " << final_path << '\n';
         }
@@ -357,7 +367,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
                                      "OK",
                                      {{"Content-Type", "application/json; charset=utf-8"},
                                       {"Content-Length", std::to_string(body.size())}})) {
-            ::close(client_fd);
+            fd::close_socket(client_fd);
             return;
         }
         fd::send_all(client_fd, body.data(), body.size());
@@ -365,7 +375,7 @@ void handle_client(int client_fd, const std::filesystem::path& root_dir) {
         send_plain_text(client_fd, 404, "Not Found", "unsupported route\n");
     }
 
-    ::close(client_fd);
+    fd::close_socket(client_fd);
 }
 
 }  // namespace
@@ -376,7 +386,17 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+#ifndef _WIN32
     std::signal(SIGPIPE, SIG_IGN);
+#endif
+
+#ifdef _WIN32
+    WSADATA wsa_data{};
+    if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
+        std::cerr << "WSAStartup() failed\n";
+        return 1;
+    }
+#endif
 
     const int port = std::stoi(argv[1]);
     const std::filesystem::path storage_dir = std::filesystem::current_path() / "upload";
@@ -387,16 +407,26 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    const int server_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+    const fd_socket_t server_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+#ifdef _WIN32
+    if (server_fd == INVALID_SOCKET) {
+#else
     if (server_fd < 0) {
+#endif
         std::cerr << "socket() failed\n";
+#ifdef _WIN32
+        WSACleanup();
+#endif
         return 1;
     }
 
     int reuse = 1;
-    if (::setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0) {
+    if (::setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) != 0) {
         std::cerr << "setsockopt(SO_REUSEADDR) failed\n";
-        ::close(server_fd);
+        fd::close_socket(server_fd);
+#ifdef _WIN32
+        WSACleanup();
+#endif
         return 1;
     }
 
@@ -406,14 +436,20 @@ int main(int argc, char** argv) {
     addr.sin_port = htons(static_cast<uint16_t>(port));
 
     if (::bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-        std::cerr << "bind() failed, errno=" << errno << "\n";
-        ::close(server_fd);
+        std::cerr << "bind() failed, errno=" << fd::last_socket_error() << "\n";
+        fd::close_socket(server_fd);
+    #ifdef _WIN32
+        WSACleanup();
+    #endif
         return 1;
     }
 
     if (::listen(server_fd, 128) != 0) {
         std::cerr << "listen() failed\n";
-        ::close(server_fd);
+        fd::close_socket(server_fd);
+    #ifdef _WIN32
+        WSACleanup();
+    #endif
         return 1;
     }
 
@@ -423,18 +459,31 @@ int main(int argc, char** argv) {
     while (true) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
-        const int client_fd = ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+        const fd_socket_t client_fd = ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+    #ifdef _WIN32
+        if (client_fd == INVALID_SOCKET) {
+    #else
         if (client_fd < 0) {
-            if (errno == EINTR) {
+    #endif
+            if (fd::last_socket_error() ==
+#ifdef _WIN32
+                WSAEINTR
+#else
+                EINTR
+#endif
+            ) {
                 continue;
             }
-            std::cerr << "accept() failed, errno=" << errno << '\n';
+            std::cerr << "accept() failed, errno=" << fd::last_socket_error() << '\n';
             continue;
         }
 
         std::thread(handle_client, client_fd, storage_dir).detach();
     }
 
-    ::close(server_fd);
+    fd::close_socket(server_fd);
+#ifdef _WIN32
+    WSACleanup();
+#endif
     return 0;
 }

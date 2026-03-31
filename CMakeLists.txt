@@ -14,3 +14,7 @@ add_executable(file_server
 
 target_include_directories(file_server PRIVATE src)
 target_compile_definitions(file_server PRIVATE FD_WEB_ROOT="${CMAKE_SOURCE_DIR}/web")
+
+if(WIN32)
+    target_link_libraries(file_server PRIVATE ws2_32)
+endif()

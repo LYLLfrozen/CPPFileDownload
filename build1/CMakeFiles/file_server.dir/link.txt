@@ -1,0 +1,3 @@
+D:\code\cmake\bin\cmake.exe -E rm -f CMakeFiles\file_server.dir/objects.a
+D:\code\MinGW\mingw64\bin\ar.exe qc CMakeFiles\file_server.dir/objects.a @CMakeFiles\file_server.dir\objects1.rsp
+d:\code\MinGW\mingw64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\file_server.dir/objects.a -Wl,--no-whole-archive -o file_server.exe -Wl,--out-implib,libfile_server.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\file_server.dir\linkLibs.rsp

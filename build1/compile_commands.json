@@ -1,0 +1,14 @@
+[
+{
+  "directory": "D:/code/c++/CPPFileDownload/build1",
+  "command": "d:\\code\\MinGW\\mingw64\\bin\\g++.exe -DFD_WEB_ROOT=\\\"D:/code/c++/CPPFileDownload/web\\\" @CMakeFiles/file_server.dir/includes_CXX.rsp -g -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\file_server.dir\\src\\server.cpp.obj -c D:\\code\\c++\\CPPFileDownload\\src\\server.cpp",
+  "file": "D:/code/c++/CPPFileDownload/src/server.cpp",
+  "output": "CMakeFiles/file_server.dir/src/server.cpp.obj"
+},
+{
+  "directory": "D:/code/c++/CPPFileDownload/build1",
+  "command": "d:\\code\\MinGW\\mingw64\\bin\\g++.exe -DFD_WEB_ROOT=\\\"D:/code/c++/CPPFileDownload/web\\\" @CMakeFiles/file_server.dir/includes_CXX.rsp -g -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\file_server.dir\\src\\common.cpp.obj -c D:\\code\\c++\\CPPFileDownload\\src\\common.cpp",
+  "file": "D:/code/c++/CPPFileDownload/src/common.cpp",
+  "output": "CMakeFiles/file_server.dir/src/common.cpp.obj"
+}
+]

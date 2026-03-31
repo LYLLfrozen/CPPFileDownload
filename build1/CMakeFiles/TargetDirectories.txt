@@ -1,0 +1,3 @@
+D:/code/c++/CPPFileDownload/build1/CMakeFiles/file_server.dir
+D:/code/c++/CPPFileDownload/build1/CMakeFiles/edit_cache.dir
+D:/code/c++/CPPFileDownload/build1/CMakeFiles/rebuild_cache.dir
