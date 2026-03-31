@@ -2,6 +2,8 @@
 
 这是一个基于 HTTP 的文件上传/下载系统，后端使用 C++，前端使用 HTML 页面，支持单文件大小到 200G 及以上（依赖磁盘和文件系统能力）。文件固定保存到服务启动目录下的 `upload/`。
 
+目前已支持 Linux、Windows、macOS 三个平台构建与运行。
+
 ## 特性
 
 - 支持大文件：使用 64 位文件大小（`uint64_t`）进行传输
@@ -23,6 +25,16 @@
 
 ## 构建
 
+### 依赖
+
+- CMake >= 3.16
+- C++17 编译器
+  - Linux: GCC/Clang
+  - macOS: Apple Clang
+  - Windows: MinGW-w64（建议通过 MSYS2 安装）
+
+### 通用构建命令
+
 ```bash
 cmake -S . -B build
 cmake --build build -j
@@ -30,14 +42,28 @@ cmake --build build -j
 
 生成可执行文件：
 
-- `build/file_server`
+- Linux/macOS: `build/file_server`
+- Windows: `build/file_server.exe`
+
+### Windows（MinGW）示例
+
+```powershell
+cmake -S . -B build -G "MinGW Makefiles"
+cmake --build build -j 10 --target file_server
+```
+
+说明：项目已内置 Windows 套接字兼容逻辑，并在 CMake 中自动链接 `ws2_32`。
 
 ## 运行
 
-1. 启动服务端
+1. 启动服务端（按平台选择命令）
 
 ```bash
 ./build/file_server 9000
+```
+
+```powershell
+.\build\file_server.exe 9000
 ```
 
 2. 浏览器打开
@@ -97,6 +123,19 @@ curl -X POST \
 curl -L "http://127.0.0.1:9000/api/download?name=big.bin" -o ./downloaded.bin
 
 curl -L "http://127.0.0.1:9000/api/files"
+```
+
+Windows PowerShell 示例：
+
+```powershell
+curl.exe -X POST `
+  -H "X-File-Name: big.bin" `
+  --data-binary "@.\big.bin" `
+  "http://127.0.0.1:9000/api/upload"
+
+curl.exe -L "http://127.0.0.1:9000/api/download?name=big.bin" -o ".\downloaded.bin"
+
+curl.exe -L "http://127.0.0.1:9000/api/files"
 ```
 
 ## 注意事项
