@@ -54,10 +54,10 @@ RM = /opt/homebrew/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/lyll/Documents/code/c++/FileDownload
+CMAKE_SOURCE_DIR = /Users/lyll/Documents/code/c++/CPPFileDownload
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/lyll/Documents/code/c++/FileDownload/build
+CMAKE_BINARY_DIR = /Users/lyll/Documents/code/c++/CPPFileDownload/build
 
 #=============================================================================
 # Directory level rules for the build root directory
@@ -85,14 +85,14 @@ clean: CMakeFiles/file_server.dir/clean
 CMakeFiles/file_server.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/file_server.dir/build.make CMakeFiles/file_server.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/file_server.dir/build.make CMakeFiles/file_server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles --progress-num=1,2,3 "Built target file_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles --progress-num=1,2,3 "Built target file_server"
 .PHONY : CMakeFiles/file_server.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/file_server.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles 3
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/file_server.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles 0
 .PHONY : CMakeFiles/file_server.dir/rule
 
 # Convenience name for target.
@@ -102,7 +102,7 @@ file_server: CMakeFiles/file_server.dir/rule
 # codegen rule for target.
 CMakeFiles/file_server.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/file_server.dir/build.make CMakeFiles/file_server.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles --progress-num=1,2,3 "Finished codegen for target file_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles --progress-num=1,2,3 "Finished codegen for target file_server"
 .PHONY : CMakeFiles/file_server.dir/codegen
 
 # clean rule for target.

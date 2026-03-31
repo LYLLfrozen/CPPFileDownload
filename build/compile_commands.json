@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/Users/lyll/Documents/code/c++/CPPFileDownload/build",
+  "command": "/usr/bin/clang++ -DFD_WEB_ROOT=\\\"/Users/lyll/Documents/code/c++/CPPFileDownload/web\\\" -I/Users/lyll/Documents/code/c++/CPPFileDownload/src -g -std=c++17 -arch arm64 -Wall -Wextra -Wpedantic -o CMakeFiles/file_server.dir/src/server.cpp.o -c /Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp",
+  "file": "/Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp",
+  "output": "CMakeFiles/file_server.dir/src/server.cpp.o"
+},
+{
+  "directory": "/Users/lyll/Documents/code/c++/CPPFileDownload/build",
+  "command": "/usr/bin/clang++ -DFD_WEB_ROOT=\\\"/Users/lyll/Documents/code/c++/CPPFileDownload/web\\\" -I/Users/lyll/Documents/code/c++/CPPFileDownload/src -g -std=c++17 -arch arm64 -Wall -Wextra -Wpedantic -o CMakeFiles/file_server.dir/src/common.cpp.o -c /Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp",
+  "file": "/Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp",
+  "output": "CMakeFiles/file_server.dir/src/common.cpp.o"
+}
+]

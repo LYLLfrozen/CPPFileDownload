@@ -53,10 +53,10 @@ RM = /opt/homebrew/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/lyll/Documents/code/c++/FileDownload
+CMAKE_SOURCE_DIR = /Users/lyll/Documents/code/c++/CPPFileDownload
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/lyll/Documents/code/c++/FileDownload/build
+CMAKE_BINARY_DIR = /Users/lyll/Documents/code/c++/CPPFileDownload/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/file_server.dir/depend.make
@@ -73,32 +73,32 @@ CMakeFiles/file_server.dir/codegen:
 .PHONY : CMakeFiles/file_server.dir/codegen
 
 CMakeFiles/file_server.dir/src/server.cpp.o: CMakeFiles/file_server.dir/flags.make
-CMakeFiles/file_server.dir/src/server.cpp.o: /Users/lyll/Documents/code/c++/FileDownload/src/server.cpp
+CMakeFiles/file_server.dir/src/server.cpp.o: /Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp
 CMakeFiles/file_server.dir/src/server.cpp.o: CMakeFiles/file_server.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/file_server.dir/src/server.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/file_server.dir/src/server.cpp.o -MF CMakeFiles/file_server.dir/src/server.cpp.o.d -o CMakeFiles/file_server.dir/src/server.cpp.o -c /Users/lyll/Documents/code/c++/FileDownload/src/server.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/file_server.dir/src/server.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/file_server.dir/src/server.cpp.o -MF CMakeFiles/file_server.dir/src/server.cpp.o.d -o CMakeFiles/file_server.dir/src/server.cpp.o -c /Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp
 
 CMakeFiles/file_server.dir/src/server.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/file_server.dir/src/server.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/lyll/Documents/code/c++/FileDownload/src/server.cpp > CMakeFiles/file_server.dir/src/server.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp > CMakeFiles/file_server.dir/src/server.cpp.i
 
 CMakeFiles/file_server.dir/src/server.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/file_server.dir/src/server.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/lyll/Documents/code/c++/FileDownload/src/server.cpp -o CMakeFiles/file_server.dir/src/server.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp -o CMakeFiles/file_server.dir/src/server.cpp.s
 
 CMakeFiles/file_server.dir/src/common.cpp.o: CMakeFiles/file_server.dir/flags.make
-CMakeFiles/file_server.dir/src/common.cpp.o: /Users/lyll/Documents/code/c++/FileDownload/src/common.cpp
+CMakeFiles/file_server.dir/src/common.cpp.o: /Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp
 CMakeFiles/file_server.dir/src/common.cpp.o: CMakeFiles/file_server.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/file_server.dir/src/common.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/file_server.dir/src/common.cpp.o -MF CMakeFiles/file_server.dir/src/common.cpp.o.d -o CMakeFiles/file_server.dir/src/common.cpp.o -c /Users/lyll/Documents/code/c++/FileDownload/src/common.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/file_server.dir/src/common.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/file_server.dir/src/common.cpp.o -MF CMakeFiles/file_server.dir/src/common.cpp.o.d -o CMakeFiles/file_server.dir/src/common.cpp.o -c /Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp
 
 CMakeFiles/file_server.dir/src/common.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/file_server.dir/src/common.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/lyll/Documents/code/c++/FileDownload/src/common.cpp > CMakeFiles/file_server.dir/src/common.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp > CMakeFiles/file_server.dir/src/common.cpp.i
 
 CMakeFiles/file_server.dir/src/common.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/file_server.dir/src/common.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/lyll/Documents/code/c++/FileDownload/src/common.cpp -o CMakeFiles/file_server.dir/src/common.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp -o CMakeFiles/file_server.dir/src/common.cpp.s
 
 # Object files for target file_server
 file_server_OBJECTS = \
@@ -112,7 +112,7 @@ file_server: CMakeFiles/file_server.dir/src/server.cpp.o
 file_server: CMakeFiles/file_server.dir/src/common.cpp.o
 file_server: CMakeFiles/file_server.dir/build.make
 file_server: CMakeFiles/file_server.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable file_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable file_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/file_server.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -124,6 +124,6 @@ CMakeFiles/file_server.dir/clean:
 .PHONY : CMakeFiles/file_server.dir/clean
 
 CMakeFiles/file_server.dir/depend:
-	cd /Users/lyll/Documents/code/c++/FileDownload/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/lyll/Documents/code/c++/FileDownload /Users/lyll/Documents/code/c++/FileDownload /Users/lyll/Documents/code/c++/FileDownload/build /Users/lyll/Documents/code/c++/FileDownload/build /Users/lyll/Documents/code/c++/FileDownload/build/CMakeFiles/file_server.dir/DependInfo.cmake "--color=$(COLOR)" file_server
+	cd /Users/lyll/Documents/code/c++/CPPFileDownload/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/lyll/Documents/code/c++/CPPFileDownload /Users/lyll/Documents/code/c++/CPPFileDownload /Users/lyll/Documents/code/c++/CPPFileDownload/build /Users/lyll/Documents/code/c++/CPPFileDownload/build /Users/lyll/Documents/code/c++/CPPFileDownload/build/CMakeFiles/file_server.dir/DependInfo.cmake "--color=$(COLOR)" file_server
 .PHONY : CMakeFiles/file_server.dir/depend
 
