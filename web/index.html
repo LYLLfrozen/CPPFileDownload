@@ -413,7 +413,8 @@
         const xhr = new XMLHttpRequest();
         const done = new Promise((resolve, reject) => {
           xhr.open('POST', '/api/upload');
-          xhr.setRequestHeader('X-File-Name', file.name);
+          // Encode file name to avoid non-ASCII characters in HTTP header values
+          xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
 
           xhr.upload.onprogress = (evt) => {
             if (evt.lengthComputable) {

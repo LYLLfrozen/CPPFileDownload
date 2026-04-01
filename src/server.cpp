@@ -292,7 +292,9 @@ void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir)
             return;
         }
 
-        const std::string file_name_raw = fd::sanitize_remote_path(it_name->second);
+        // Header value was percent-encoded on the client side; decode it first.
+        const std::string decoded_name = url_decode(it_name->second);
+        const std::string file_name_raw = fd::sanitize_remote_path(decoded_name);
         const std::string file_name = std::filesystem::path(file_name_raw).filename().string();
         if (file_name.empty()) {
             send_plain_text(client_fd, 400, "Bad Request", "invalid file name\n");
