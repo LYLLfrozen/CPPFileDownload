@@ -1,1 +1,7 @@
+<<<<<<< Updated upstream
 /usr/bin/clang++ -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/file_server.dir/src/server.cpp.o CMakeFiles/file_server.dir/src/common.cpp.o -o file_server
+=======
+D:\code\cmake\bin\cmake.exe -E rm -f CMakeFiles\file_server.dir/objects.a
+D:\code\dev\mingw64\bin\ar.exe qc CMakeFiles\file_server.dir/objects.a @CMakeFiles\file_server.dir\objects1.rsp
+D:\code\dev\mingw64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\file_server.dir/objects.a -Wl,--no-whole-archive -o file_server.exe -Wl,--out-implib,libfile_server.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\file_server.dir\linkLibs.rsp
+>>>>>>> Stashed changes

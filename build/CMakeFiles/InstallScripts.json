@@ -1,7 +1,11 @@
 {
 	"InstallScripts" : 
 	[
+<<<<<<< Updated upstream
 		"/Users/lyll/Documents/code/c++/CPPFileDownload/build/cmake_install.cmake"
+=======
+		"D:/code/c++/CPPFileDownload/build/cmake_install.cmake"
+>>>>>>> Stashed changes
 	],
 	"Parallel" : false
 }

@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <csignal>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -11,11 +12,14 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <chrono>
 #include <vector>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <io.h>      // _read, _write (MinGW / MSVC)
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -23,6 +27,57 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
+// Retrieve the first non-loopback IPv4 address of the host.
+std::string get_local_ip() {
+#if defined(_WIN32)
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname)) != 0) return "";
+    addrinfo hints{}, *res = nullptr;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(hostname, nullptr, &hints, &res) != 0) return "";
+    std::string ip;
+    for (addrinfo* p = res; p; p = p->ai_next) {
+        sockaddr_in* ipv4 = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+        char ipstr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(ipv4->sin_addr), ipstr, INET_ADDRSTRLEN);
+        if (strcmp(ipstr, "127.0.0.1") != 0) { ip = ipstr; break; }
+    }
+    freeaddrinfo(res);
+    return ip;
+#else
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname)) != 0) return "";
+    addrinfo hints{}, *res = nullptr;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(hostname, nullptr, &hints, &res) != 0) return "";
+    std::string ip;
+    for (addrinfo* p = res; p; p = p->ai_next) {
+        sockaddr_in* ipv4 = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+        char ipstr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(ipv4->sin_addr), ipstr, INET_ADDRSTRLEN);
+        if (strcmp(ipstr, "127.0.0.1") != 0) { ip = ipstr; break; }
+    }
+    freeaddrinfo(res);
+    return ip;
+#endif
+}
+
+void log(const std::string& msg) {
+    auto now = std::chrono::system_clock::now();
+    std::time_t tt = std::chrono::system_clock::to_time_t(now);
+    std::tm tm;
+#ifdef _WIN32
+    localtime_s(&tm, &tt);
+#else
+    localtime_r(&tt, &tm);
+#endif
+    char buf[20];
+    std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm);
+    std::cerr << "[" << buf << "] " << msg << std::endl;
+}
 
 namespace {
 
@@ -248,7 +303,35 @@ bool send_plain_text(fd_socket_t fd, int code, const std::string& status, const 
     return fd::send_all(fd, body.data(), body.size());
 }
 
-void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir) {
+// Helper: format bytes as human-readable string (B / KB / MB / GB).
+std::string fmt_bytes(std::uint64_t bytes) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1);
+    if (bytes < 1024ULL) {
+        oss << bytes << " B";
+    } else if (bytes < 1024ULL * 1024) {
+        oss << static_cast<double>(bytes) / 1024.0 << " KB";
+    } else if (bytes < 1024ULL * 1024 * 1024) {
+        oss << static_cast<double>(bytes) / (1024.0 * 1024) << " MB";
+    } else {
+        oss << static_cast<double>(bytes) / (1024.0 * 1024 * 1024) << " GB";
+    }
+    return oss.str();
+}
+
+// Helper: format speed in KB/s or MB/s.
+std::string fmt_speed(double bytes_per_sec) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1);
+    if (bytes_per_sec < 1024.0 * 1024) {
+        oss << bytes_per_sec / 1024.0 << " KB/s";
+    } else {
+        oss << bytes_per_sec / (1024.0 * 1024) << " MB/s";
+    }
+    return oss.str();
+}
+
+void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir, const std::string& client_ip) {
     HttpRequest req;
     if (!read_http_request(client_fd, req)) {
         fd::close_socket(client_fd);
@@ -274,8 +357,9 @@ void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir)
             return;
         }
         fd::send_all(client_fd, html.data(), html.size());
+
     } else if (req.method == "POST" && route == "/api/upload") {
-        const auto it_len = req.headers.find("content-length");
+        const auto it_len  = req.headers.find("content-length");
         const auto it_name = req.headers.find("x-file-name");
         if (it_len == req.headers.end() || it_name == req.headers.end()) {
             send_plain_text(client_fd, 400, "Bad Request", "missing content-length or x-file-name\n");
@@ -311,16 +395,104 @@ void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir)
             return;
         }
 
-        const bool ok = fd::stream_socket_to_file(client_fd, file_fd, file_size);
-        fd::close_file(file_fd);
+        log("upload   START  [" + client_ip + "] \"" + file_name + "\"  total=" + fmt_bytes(file_size));
 
-        if (!ok) {
-            send_plain_text(client_fd, 500, "Internal Server Error", "upload failed\n");
-            fd::close_socket(client_fd);
-            return;
+        // Receive data from socket and write to file, logging progress every second.
+        {
+            std::vector<char> up_buf(fd::kBufferSize);
+            std::uint64_t up_remaining = file_size;
+            std::uint64_t up_received  = 0;
+            auto up_start    = std::chrono::steady_clock::now();
+            auto up_last_log = up_start;
+            bool up_ok       = true;
+
+            while (up_remaining > 0 && up_ok) {
+                const std::size_t chunk = std::min(
+                    static_cast<std::size_t>(up_buf.size()),
+                    static_cast<std::size_t>(up_remaining));
+                const int n = ::recv(client_fd, up_buf.data(), static_cast<int>(chunk), 0);
+                if (n < 0) {
+#ifdef _WIN32
+                    if (fd::last_socket_error() == WSAEINTR) continue;
+#else
+                    if (errno == EINTR) continue;
+#endif
+                    up_ok = false;
+                    break;
+                }
+                if (n == 0) { up_ok = false; break; }
+
+                // Write received bytes to file.
+                std::size_t written = 0;
+                const std::size_t to_write = static_cast<std::size_t>(n);
+                while (written < to_write) {
+#ifdef _WIN32
+                    const int w = ::_write(file_fd,
+                        up_buf.data() + written,
+                        static_cast<unsigned int>(to_write - written));
+#else
+                    const ssize_t w = ::write(file_fd,
+                        up_buf.data() + written,
+                        to_write - written);
+#endif
+                    if (w < 0) {
+                        if (errno == EINTR) continue;
+                        up_ok = false;
+                        break;
+                    }
+                    written += static_cast<std::size_t>(w);
+                }
+                if (!up_ok) break;
+
+                up_received  += to_write;
+                up_remaining -= to_write;
+
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - up_start).count();
+                auto since_log  = std::chrono::duration_cast<std::chrono::milliseconds>(now - up_last_log).count();
+                if (since_log >= 1000) {
+                    // Avoid division by zero: elapsed_ms is always > 0 here (since_log >= 1000).
+                    const double speed = static_cast<double>(up_received) * 1000.0
+                                         / static_cast<double>(elapsed_ms);
+                    const int pct = file_size > 0
+                        ? static_cast<int>(up_received * 100 / file_size)
+                        : 0;
+                    std::ostringstream oss;
+                    oss << "upload   PROG   [" << client_ip << "] \"" << file_name << "\""
+                        << "  " << fmt_bytes(up_received) << " / " << fmt_bytes(file_size)
+                        << "  (" << pct << "%)"
+                        << "  " << fmt_speed(speed);
+                    log(oss.str());
+                    up_last_log = now;
+                }
+            }
+
+            fd::close_file(file_fd);
+
+            const auto end      = std::chrono::steady_clock::now();
+            const auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - up_start).count();
+            const double avg_speed = total_ms > 0
+                ? static_cast<double>(up_received) * 1000.0 / static_cast<double>(total_ms)
+                : 0.0;
+
+            if (!up_ok) {
+                log("upload   FAIL   [" + client_ip + "] \"" + file_name + "\""
+                    + "  received=" + fmt_bytes(up_received));
+                send_plain_text(client_fd, 500, "Internal Server Error", "upload failed\n");
+                fd::close_socket(client_fd);
+                return;
+            }
+
+            std::ostringstream done_oss;
+            done_oss << "upload   DONE   [" << client_ip << "] \"" << file_name << "\""
+                     << "  " << fmt_bytes(up_received)
+                     << "  avg=" << fmt_speed(avg_speed)
+                     << "  time=" << total_ms << " ms";
+            log(done_oss.str());
         }
 
         send_plain_text(client_fd, 200, "OK", "upload success: " + file_name + "\n");
+
     } else if (req.method == "GET" && route == "/api/download") {
         const std::string file_name_raw = fd::sanitize_remote_path(get_query_param(req.target, "name"));
         const std::string file_name = std::filesystem::path(file_name_raw).filename().string();
@@ -357,11 +529,97 @@ void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir)
             return;
         }
 
-        const bool ok = fd::stream_file_to_socket(file_fd, client_fd, file_size);
-        fd::close_file(file_fd);
-        if (!ok) {
-            std::cerr << "download failed: " << final_path << '\n';
+        log("download START  [" + client_ip + "] \"" + file_name + "\"  total=" + fmt_bytes(file_size));
+
+        // Stream file to socket with per-second progress logging.
+        {
+            std::vector<char> buffer(fd::kBufferSize);
+            std::uint64_t remaining = file_size;
+            std::uint64_t sent      = 0;
+            auto start_time  = std::chrono::steady_clock::now();
+            auto last_log    = start_time;
+            bool ok          = true;
+
+            while (remaining > 0 && ok) {
+                const std::size_t chunk = std::min(
+                    static_cast<std::size_t>(buffer.size()),
+                    static_cast<std::size_t>(remaining));
+
+                // Read exactly `chunk` bytes from file.
+                std::size_t total_read = 0;
+                while (total_read < chunk) {
+#ifdef _WIN32
+                    const int n = ::_read(file_fd,
+                        buffer.data() + total_read,
+                        static_cast<unsigned int>(chunk - total_read));
+#else
+                    const ssize_t n = ::read(file_fd,
+                        buffer.data() + total_read,
+                        chunk - total_read);
+#endif
+                    if (n < 0) {
+                        if (errno == EINTR) continue;
+                        ok = false;
+                        break;
+                    }
+                    if (n == 0) { ok = false; break; }   // Unexpected EOF
+                    total_read += static_cast<std::size_t>(n);
+                }
+                if (!ok) break;
+
+                // BUG FIX: send `total_read` bytes actually read, not `chunk`.
+                // (they are equal in normal conditions, but must be correct on short reads)
+                if (!fd::send_all(client_fd, buffer.data(), total_read)) {
+                    ok = false;
+                    break;
+                }
+
+                sent      += total_read;
+                remaining -= total_read;
+
+                auto now        = std::chrono::steady_clock::now();
+                auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
+                auto since_log  = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_log).count();
+
+                if (since_log >= 1000) {
+                    // BUG FIX: use milliseconds to avoid division-by-zero when elapsed < 1 s.
+                    const double speed = elapsed_ms > 0
+                        ? static_cast<double>(sent) * 1000.0 / static_cast<double>(elapsed_ms)
+                        : 0.0;
+                    const int pct = file_size > 0
+                        ? static_cast<int>(sent * 100 / file_size)
+                        : 0;
+                    std::ostringstream oss;
+                    oss << "download PROG   [" << client_ip << "] \"" << file_name << "\""
+                        << "  " << fmt_bytes(sent) << " / " << fmt_bytes(file_size)
+                        << "  (" << pct << "%)"
+                        << "  " << fmt_speed(speed);
+                    log(oss.str());
+                    last_log = now;
+                }
+            }
+
+            const auto end      = std::chrono::steady_clock::now();
+            const auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count();
+            const double avg_speed = total_ms > 0
+                ? static_cast<double>(sent) * 1000.0 / static_cast<double>(total_ms)
+                : 0.0;
+
+            if (!ok) {
+                log("download FAIL   [" + client_ip + "] \"" + file_name + "\""
+                    + "  sent=" + fmt_bytes(sent));
+            } else {
+                std::ostringstream oss;
+                oss << "download DONE   [" << client_ip << "] \"" << file_name << "\""
+                    << "  " << fmt_bytes(sent)
+                    << "  avg=" << fmt_speed(avg_speed)
+                    << "  time=" << total_ms << " ms";
+                log(oss.str());
+            }
         }
+
+        fd::close_file(file_fd);
+
     } else if (req.method == "GET" && route == "/api/files") {
         const std::string body = build_files_json(root_dir);
         if (!send_http_response_head(client_fd,
@@ -383,8 +641,13 @@ void handle_client(fd_socket_t client_fd, const std::filesystem::path& root_dir)
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <port>\n";
+    int port;
+    if (argc == 1) {
+        port = 9000;
+    } else if (argc == 2) {
+        port = std::stoi(argv[1]);
+    } else {
+        std::cerr << "Usage: " << argv[0] << " [port]\n";
         return 1;
     }
 
@@ -400,7 +663,6 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    const int port = std::stoi(argv[1]);
     const std::filesystem::path storage_dir = std::filesystem::current_path() / "upload";
     std::error_code ec;
     std::filesystem::create_directories(storage_dir, ec);
@@ -423,7 +685,8 @@ int main(int argc, char** argv) {
     }
 
     int reuse = 1;
-    if (::setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) != 0) {
+    if (::setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
+                     reinterpret_cast<const char*>(&reuse), sizeof(reuse)) != 0) {
         std::cerr << "setsockopt(SO_REUSEADDR) failed\n";
         fd::close_socket(server_fd);
 #ifdef _WIN32
@@ -433,40 +696,46 @@ int main(int argc, char** argv) {
     }
 
     sockaddr_in addr{};
-    addr.sin_family = AF_INET;
+    addr.sin_family      = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(static_cast<uint16_t>(port));
+    addr.sin_port        = htons(static_cast<uint16_t>(port));
 
     if (::bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
         std::cerr << "bind() failed, errno=" << fd::last_socket_error() << "\n";
         fd::close_socket(server_fd);
-    #ifdef _WIN32
+#ifdef _WIN32
         WSACleanup();
-    #endif
+#endif
         return 1;
     }
 
     if (::listen(server_fd, 128) != 0) {
         std::cerr << "listen() failed\n";
         fd::close_socket(server_fd);
-    #ifdef _WIN32
+#ifdef _WIN32
         WSACleanup();
-    #endif
+#endif
         return 1;
     }
 
-    std::cout << "HTTP server listening on port " << port << ", fixed storage dir: " << storage_dir << '\n';
+    std::cout << "HTTP server listening on port " << port
+              << ", fixed storage dir: " << storage_dir << '\n';
+    std::string lan_ip = get_local_ip();
+    if (!lan_ip.empty()) {
+        std::cout << "LAN: http://" << lan_ip << ":" << port << "/\n";
+    }
     std::cout << "Open: http://127.0.0.1:" << port << "/\n";
 
     while (true) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
-        const fd_socket_t client_fd = ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
-    #ifdef _WIN32
+        const fd_socket_t client_fd = ::accept(
+            server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+#ifdef _WIN32
         if (client_fd == INVALID_SOCKET) {
-    #else
+#else
         if (client_fd < 0) {
-    #endif
+#endif
             if (fd::last_socket_error() ==
 #ifdef _WIN32
                 WSAEINTR
@@ -480,7 +749,10 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        std::thread(handle_client, client_fd, storage_dir).detach();
+        char client_ip_str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip_str, INET_ADDRSTRLEN);
+        std::string client_ip(client_ip_str);
+        std::thread(handle_client, client_fd, storage_dir, client_ip).detach();
     }
 
     fd::close_socket(server_fd);

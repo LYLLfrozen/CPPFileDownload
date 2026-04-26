@@ -1,8 +1,12 @@
+<<<<<<< Updated upstream
 # Install script for directory: /Users/lyll/Documents/code/c++/CPPFileDownload
+=======
+# Install script for directory: D:/code/c++/CPPFileDownload
+>>>>>>> Stashed changes
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/usr/local")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/FileDownload")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,13 +38,17 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "/usr/bin/objdump")
+  set(CMAKE_OBJDUMP "D:/code/dev/mingw64/bin/objdump.exe")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
+<<<<<<< Updated upstream
   file(WRITE "/Users/lyll/Documents/code/c++/CPPFileDownload/build/install_local_manifest.txt"
+=======
+  file(WRITE "D:/code/c++/CPPFileDownload/build/install_local_manifest.txt"
+>>>>>>> Stashed changes
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -56,6 +64,10 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+<<<<<<< Updated upstream
   file(WRITE "/Users/lyll/Documents/code/c++/CPPFileDownload/build/${CMAKE_INSTALL_MANIFEST}"
+=======
+  file(WRITE "D:/code/c++/CPPFileDownload/build/${CMAKE_INSTALL_MANIFEST}"
+>>>>>>> Stashed changes
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

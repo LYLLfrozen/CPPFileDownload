@@ -8,8 +8,13 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+<<<<<<< Updated upstream
   "/Users/lyll/Documents/code/c++/CPPFileDownload/src/common.cpp" "CMakeFiles/file_server.dir/src/common.cpp.o" "gcc" "CMakeFiles/file_server.dir/src/common.cpp.o.d"
   "/Users/lyll/Documents/code/c++/CPPFileDownload/src/server.cpp" "CMakeFiles/file_server.dir/src/server.cpp.o" "gcc" "CMakeFiles/file_server.dir/src/server.cpp.o.d"
+=======
+  "D:/code/c++/CPPFileDownload/src/common.cpp" "CMakeFiles/file_server.dir/src/common.cpp.obj" "gcc" "CMakeFiles/file_server.dir/src/common.cpp.obj.d"
+  "D:/code/c++/CPPFileDownload/src/server.cpp" "CMakeFiles/file_server.dir/src/server.cpp.obj" "gcc" "CMakeFiles/file_server.dir/src/server.cpp.obj.d"
+>>>>>>> Stashed changes
   )
 
 # Targets to which this target links which contain Fortran sources.
