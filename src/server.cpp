@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <netdb.h>   // for getaddrinfo
 #endif
 
 // Retrieve the first non-loopback IPv4 address of the host.

@@ -4,7 +4,12 @@
       "Bash(git rm *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(g++ *)",
+      "Bash(./file_server *)",
+      "Bash(sleep2)",
+      "Bash(kill %1)",
+      "Bash(./file_server9001)"
     ]
   }
 }
